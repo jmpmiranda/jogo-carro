@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Stunt Drift City</title>
+<style>
+html,body{margin:0;height:100%;overflow:hidden;background:#87ceeb;font-family:system-ui,sans-serif;touch-action:none}
+canvas{display:block}
+#hud{position:fixed;top:10px;left:14px;color:#fff;font-weight:700;text-shadow:0 2px 4px #0008;pointer-events:none}
+#spd{font-size:36px}#sc{font-size:16px}#dr{font-size:22px;color:#ffd23f;min-height:26px}
+#help{position:fixed;top:10px;right:14px;color:#fff;font-size:12px;text-align:right;text-shadow:0 1px 3px #0009;pointer-events:none}
+.b{position:fixed;width:70px;height:70px;border-radius:50%;background:#0005;color:#fff;font-size:12px;font-weight:700;display:none;align-items:center;justify-content:center;user-select:none;-webkit-user-select:none;border:2px solid #fff6}
+</style></head><body>
+<div id="hud"><div id="spd">0 km/h</div><div id="dr"></div><div id="sc">Pontos: 0</div></div>
+<div id="help">WASD / setas · Espaço = drift · R = reiniciar</div>
+<div class="b" id="bl" style="left:12px;bottom:18px">◀</div>
+<div class="b" id="br" style="left:92px;bottom:18px">▶</div>
+<div class="b" id="bd" style="right:12px;bottom:98px">DRIFT</div>
+<div class="b" id="bb" style="right:92px;bottom:18px">FREIO</div>
+<div class="b" id="bg" style="right:12px;bottom:18px">GÁS</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+let seed=7;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x87ceeb);scene.fog=new THREE.Fog(0x87ceeb,90,320);
+const cam=new THREE.PerspectiveCamera(65,innerWidth/innerHeight,.1,600);
+const ren=new THREE.WebGLRenderer({antialias:true});ren.setSize(innerWidth,innerHeight);
+ren.setPixelRatio(Math.min(devicePixelRatio,2));ren.shadowMap.enabled=true;document.body.appendChild(ren.domElement);
+addEventListener('resize',()=>{cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();ren.setSize(innerWidth,innerHeight)});
+scene.add(new THREE.HemisphereLight(0xffffff,0x667788,.85));
+const sun=new THREE.DirectionalLight(0xffffff,.8);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);
+const sh=sun.shadow.camera;sh.left=sh.bottom=-70;sh.right=sh.top=70;sh.far=300;scene.add(sun,sun.target);
+const mat=(c,r=.8)=>new THREE.MeshStandardMaterial({color:c,roughness:r});
+
+// Cidade
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(900,900),mat(0x3b3f45));ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;scene.add(ground);
+const blds=[];const pal=[0xf1faee,0xa8dadc,0xffd6a5,0xcdb4db,0xbde0fe,0xffc8dd,0xcaffbf];
+for(let i=-4;i<=4;i++)for(let j=-4;j<=4;j++){
+  if(i==0&&j==0)continue;
+  const cx=i*50,cz=j*50;
+  const sw=new THREE.Mesh(new THREE.BoxGeometry(30,.3,30),mat(0x8c9094));sw.position.set(cx,.15,cz);sw.receiveShadow=true;scene.add(sw);
+  for(const ox of[-7.5,7.5])for(const oz of[-7.5,7.5]){
+    if(rnd()<.15)continue;
+    const h=8+rnd()*42,w=12;
+    const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,w),mat(pal[Math.floor(rnd()*pal.length)],.6));
+    m.position.set(cx+ox,h/2,cz+oz);m.castShadow=m.receiveShadow=true;scene.add(m);
+    blds.push({x:cx+ox,z:cz+oz,hw:w/2,hd:w/2});
+  }
+}
+// faixas tracejadas
+{const pts=[];for(let k=-5;k<=4;k++)for(let t=-225;t<=225;t+=8){pts.push([50*k+25,t,0]);pts.push([t,50*k+25,1])}
+const im=new THREE.InstancedMesh(new THREE.BoxGeometry(.3,.02,3),new THREE.MeshBasicMaterial({color:0xf4e285}),pts.length);
+const d=new THREE.Object3D();pts.forEach((p,n)=>{d.position.set(p[0],.02,p[1]);d.rotation.y=p[2]?Math.PI/2:0;d.updateMatrix();im.setMatrixAt(n,d.matrix)});scene.add(im)}
+// rampas
+const ramps=[[25,-70],[-25,60],[75,10],[-75,-20],[0,-12],[125,-125],[-125,125],[25,110]];
+ramps.forEach(([x,z])=>{const r=new THREE.Mesh(new THREE.BoxGeometry(8,.6,11),mat(0xff8c42,.5));
+  r.position.set(x,.9,z);r.rotation.x=-.28;r.castShadow=true;scene.add(r)});
+
+// Carro
+const car=new THREE.Group(),body=new THREE.Group();car.add(body);
+function box(w,h,d,c,x,y,z,p){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat(c,.4));m.position.set(x,y,z);m.castShadow=true;p.add(m);return m}
+box(2,.6,4.2,0xe63946,0,.75,0,body);box(1.7,.55,2.1,0x1d2530,0,1.3,-.2,body);box(2.05,.12,.5,0xe63946,0,1.6,-1.9,body);
+box(.45,.18,.05,0xffffcc,.65,.8,2.11,body);box(.45,.18,.05,0xffffcc,-.65,.8,2.11,body);
+box(.45,.18,.05,0xff2200,.65,.8,-2.11,body);box(.45,.18,.05,0xff2200,-.65,.8,-2.11,body);
+const wheels=[];
+[[-1,1.3,1],[1,1.3,1],[-1,-1.3,0],[1,-1.3,0]].forEach(([sx,z,f])=>{
+  const piv=new THREE.Group();piv.position.set(sx*1.05,.4,z);
+  const g=new THREE.CylinderGeometry(.4,.4,.35,14);g.rotateZ(Math.PI/2);
+  const w=new THREE.Mesh(g,mat(0x111111));w.castShadow=true;piv.add(w);car.add(piv);wheels.push({piv,w,f})});
+scene.add(car);
+
+// Fumaça
+const smoke=[];for(let i=0;i<40;i++){const m=new THREE.Mesh(new THREE.SphereGeometry(.4,6,6),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0}));
+  m.visible=false;scene.add(m);smoke.push({m,life:0})}
+let si=0;function puff(x,y,z){const s=smoke[si++%40];s.life=1;s.m.position.set(x,y,z);s.m.scale.setScalar(1);s.m.visible=true}
+
+// Controles
+const K={};const map={ArrowUp:'u',w:'u',W:'u',ArrowDown:'d',s:'d',S:'d',ArrowLeft:'l',a:'l',A:'l',ArrowRight:'r',d:'r',D:'r',' ':'h'};
+addEventListener('keydown',e=>{if(map[e.key]){K[map[e.key]]=1;e.preventDefault()}if(e.key=='r'||e.key=='R')reset()});
+addEventListener('keyup',e=>{if(map[e.key])K[map[e.key]]=0});
+if('ontouchstart'in window)document.querySelectorAll('.b').forEach(b=>b.style.display='flex');
+[['bl','l'],['br','r'],['bd','h'],['bb','d'],['bg','u']].forEach(([id,k])=>{const b=document.getElementById(id);
+  b.addEventListener('pointerdown',e=>{K[k]=1;e.preventDefault()});['pointerup','pointerleave','pointercancel'].forEach(t=>b.addEventListener(t,()=>K[k]=0))});
+
+// Física
+const S={x:0,z:20,h:Math.PI,vx:0,vz:0,y:0,vy:0,steer:0,combo:0,dt:0,score:0};
+function reset(){Object.assign(S,{x:0,z:20,h:Math.PI,vx:0,vz:0,y:0,vy:0,steer:0,combo:0,dt:0})}
+let camH=S.h;const adiff=(a,b)=>Math.atan2(Math.sin(a-b),Math.cos(a-b));
+const hudS=document.getElementById('spd'),hudD=document.getElementById('dr'),hudP=document.getElementById('sc');
+
+function step(dt){
+  const fx=Math.sin(S.h),fz=Math.cos(S.h),rx=fz,rz=-fx;
+  let vf=S.vx*fx+S.vz*fz,vl=S.vx*rx+S.vz*rz;
+  const air=S.y>.05,hand=!!K.h;
+  S.steer+=(((K.l?1:0)-(K.r?1:0))-S.steer)*Math.min(1,8*dt);
+  if(!air){
+    if(K.u)vf+=Math.max(0,28*(1-vf/55))*dt;
+    if(K.d){if(vf>1)vf-=42*dt;else vf=Math.max(-14,vf-14*dt)}
+    if(!K.u&&!K.d)vf*=Math.exp(-.5*dt);
+    if(hand)vf*=Math.exp(-.35*dt);
+    const g=hand?1.2:Math.max(2.2,7-Math.abs(S.steer)*Math.abs(vf)*.12);
+    vl*=Math.exp(-g*dt);
+    const sp=Math.min(1,Math.abs(vf)/6)*Math.sign(vf);
+    S.h+=S.steer*(hand?2.8:2)*sp/(1+Math.abs(vf)/50)*dt;
+  }
+  const f2x=Math.sin(S.h),f2z=Math.cos(S.h);
+  S.vx=vf*f2x+vl*f2z;S.vz=vf*f2z-vl*f2x;
+  S.x+=S.vx*dt;S.z+=S.vz*dt;
+  // rampas
+  if(!air)for(const[rx0,rz0]of ramps)if(Math.abs(S.x-rx0)<4&&Math.abs(S.z-rz0)<5.5&&Math.hypot(S.vx,S.vz)>7){S.vy=Math.min(15,Math.hypot(S.vx,S.vz)*.32);S.y=.06}
+  if(S.y>0){S.vy-=30*dt;S.y+=S.vy*dt;if(S.y<=0){S.y=0;S.vy=0}}
+  // colisão
+  for(const b of blds){const px=S.x-b.x,pz=S.z-b.z,ox=b.hw+1.4-Math.abs(px),oz=b.hd+1.4-Math.abs(pz);
+    if(ox>0&&oz>0&&S.y<40){
+      if(ox<oz){S.x+=Math.sign(px)*ox;S.vx*=-.3;S.vz*=.8}else{S.z+=Math.sign(pz)*oz;S.vz*=-.3;S.vx*=.8}
+      S.combo=0;S.dt=0}}
+  S.x=Math.max(-235,Math.min(235,S.x));S.z=Math.max(-235,Math.min(235,S.z));
+  // drift
+  const spd=Math.hypot(S.vx,S.vz);
+  if(!air&&Math.abs(vl)>3.5&&spd>8){S.combo+=Math.abs(vl)*dt*10;S.dt=.7;
+    for(const sx of[-1,1])if(Math.random()<.6)puff(S.x-f2x*1.3+rx*sx*1.05,.5,S.z-f2z*1.3+rz*sx*1.05)}
+  else if(S.dt>0){S.dt-=dt;if(S.dt<=0){S.score+=Math.floor(S.combo);S.combo=0}}
+  // visual
+  car.position.set(S.x,S.y,S.z);car.rotation.y=S.h;
+  body.rotation.x=-Math.max(-.5,Math.min(.5,S.vy*.03));body.rotation.z=-vl*.012;
+  wheels.forEach(w=>{if(w.f)w.piv.rotation.y=S.steer*.5;w.w.rotation.x+=vf*dt/.4});
+  smoke.forEach(s=>{if(s.life>0){s.life-=dt*1.4;s.m.position.y+=dt*1.2;s.m.scale.setScalar(1+(1-s.life)*3);s.m.material.opacity=Math.max(0,s.life*.55);if(s.life<=0)s.m.visible=false}});
+  // câmera
+  camH+=adiff(S.h,camH)*Math.min(1,4*dt);
+  const cx=S.x-Math.sin(camH)*9,cz=S.z-Math.cos(camH)*9;
+  cam.position.x+=(cx-cam.position.x)*Math.min(1,8*dt);cam.position.z+=(cz-cam.position.z)*Math.min(1,8*dt);
+  cam.position.y+=(S.y+4.3-cam.position.y)*Math.min(1,6*dt);
+  cam.lookAt(S.x+Math.sin(camH)*4,S.y+1.2,S.z+Math.cos(camH)*4);
+  const fov=65+Math.min(18,spd*.35);if(Math.abs(cam.fov-fov)>.1){cam.fov+=(fov-cam.fov)*.1;cam.updateProjectionMatrix()}
+  sun.position.set(S.x+60,100,S.z+40);sun.target.position.set(S.x,0,S.z);
+  hudS.textContent=Math.round(spd*3.2)+' km/h';
+  hudD.textContent=S.combo>5?'DRIFT +'+Math.floor(S.combo):'';
+  hudP.textContent='Pontos: '+S.score;
+}
+let last=performance.now();
+(function loop(t){requestAnimationFrame(loop);const dt=Math.min(.05,(t-last)/1000);last=t;step(dt);ren.render(scene,cam)})(last);
+</script></body></html>
