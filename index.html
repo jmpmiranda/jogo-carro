@@ -21,7 +21,7 @@ canvas{display:block}
 <div id="vig"></div>
 <div id="hud"><div id="hpw"><div id="hp"></div></div><div id="st"></div><div id="spd">0 km/h</div><div id="dr"></div><div id="sc"></div></div>
 <div id="msg"></div>
-<div class="ov" id="menu"><h1>STUNT DRIFT CITY</h1><p>Escolha a cor do carro</p><div class="dots" id="dots"></div>
+<div class="ov" id="menu" style="justify-content:flex-end;padding-bottom:24px;background:linear-gradient(transparent 30%,rgba(10,15,30,.75))"><h1>STUNT DRIFT CITY</h1><div style="display:flex;align-items:center;gap:14px"><button class="btn" style="padding:8px 18px" id="pv">◀</button><b id="cn" style="font-size:24px;min-width:170px"></b><button class="btn" style="padding:8px 18px" id="nx">▶</button></div><p id="cs"></p><p>Cor</p><div class="dots" id="dots"></div>
 <button class="btn" id="play">JOGAR</button><p id="help">WASD/setas · Espaço = drift · R = reiniciar<br>Bata em carros e prédios e a polícia vai atrás de você</p></div>
 <div class="ov" id="over" style="display:none"><h1>BUSTED!</h1><p id="fs"></p><button class="btn" id="again">JOGAR DE NOVO</button></div>
 <div class="b" id="bl" style="left:12px;bottom:18px">◀</div><div class="b" id="br" style="left:92px;bottom:18px">▶</div>
@@ -75,29 +75,50 @@ const rampM=new THREE.MeshStandardMaterial({color:0xff8c42,roughness:.5});
 ramps.forEach(([x,z])=>{const r=new THREE.Mesh(new THREE.BoxGeometry(8,.6,11),rampM);r.position.set(x,.9,z);r.rotation.x=-.28;r.castShadow=true;scene.add(r)});
 
 // Carros detalhados (carroceria extrudada com bisel, vidro e pintura metálica)
+const CT={
+ hatch:{L:1.85,w:1.7,wb:.98,rb:.96,fb:.76,rh:1.52,a:-1.1,b:.75,c:-.85,d:.2,r:.38},
+ sedan:{L:2.15,w:1.75,wb:.98,rb:1,fb:.8,rh:1.48,a:-1.2,b:.9,c:-.8,d:.3,r:.38},
+ muscle:{L:2.25,w:1.92,wb:1.04,rb:1.08,fb:.88,rh:1.5,a:-1,b:.8,c:-.6,d:.2,r:.4,sp:1,scoop:1},
+ sport:{L:2.2,w:1.86,wb:.92,rb:.94,fb:.7,rh:1.3,a:-.95,b:.75,c:-.55,d:.15,r:.38,sp:1},
+ super:{L:2.3,w:1.98,wb:.8,rb:.86,fb:.58,rh:1.14,a:-.7,b:.5,c:-.3,d:.15,r:.36,sp:2},
+ hyper:{L:2.35,w:2.02,wb:.78,rb:.84,fb:.52,rh:1.1,a:-.75,b:.55,c:-.35,d:.1,r:.36,sp:2}};
+const chaikin=(p,n)=>{for(let k=0;k<n;k++){const q=[];for(let i=0;i<p.length;i++){const a=p[i],b=p[(i+1)%p.length];q.push([.75*a[0]+.25*b[0],.75*a[1]+.25*b[1]],[.25*a[0]+.75*b[0],.25*a[1]+.75*b[1]])}p=q}return p};
+const dkM=new THREE.MeshStandardMaterial({color:0x111214,roughness:.7}),tm=new THREE.MeshStandardMaterial({color:0x101010,roughness:.85}),rm=new THREE.MeshStandardMaterial({color:0xd5d9de,metalness:1,roughness:.2});
 function mkCar(o){
+ const T=CT[o.t||'sedan'],{L,w,wb,rb,fb,rh,a,b,c,d,r}=T,sp=T.sp||0;
  const g=new THREE.Group(),body=new THREE.Group();g.add(body);
- const paint=new THREE.MeshPhysicalMaterial({color:o.color,metalness:.6,roughness:.3,clearcoat:1,clearcoatRoughness:.05});
- const glass=new THREE.MeshPhysicalMaterial({color:0x0e141b,metalness:.9,roughness:.06,envMapIntensity:1.5});
- const ex=(pts,w,mt)=>{const s=new THREE.Shape();pts.forEach((p,i)=>i?s.lineTo(p[0],p[1]):s.moveTo(p[0],p[1]));
-  const gm=new THREE.ExtrudeGeometry(s,{depth:w,bevelEnabled:true,bevelThickness:.1,bevelSize:.1,bevelSegments:3,curveSegments:1});
-  gm.rotateY(-Math.PI/2);gm.translate(w/2,0,0);const m=new THREE.Mesh(gm,mt);m.castShadow=true;body.add(m);return m};
- ex([[-2.1,.35],[-2.1,.9],[-1.6,1.0],[-.9,1.02],[.9,.98],[1.6,.88],[2.1,.78],[2.1,.35]],1.7,paint);
- ex([[-1.2,1.0],[-.85,1.48],[.3,1.52],[.95,1.0]],1.5,glass);
- ex([[-.8,1.5],[.25,1.54],[.25,1.6],[-.75,1.57]],1.3,paint);
+ const paint=new THREE.MeshPhysicalMaterial({color:o.color,metalness:.65,roughness:.22,clearcoat:1,clearcoatRoughness:.03,envMapIntensity:1.4});
+ const glass=new THREE.MeshPhysicalMaterial({color:0x0b1118,metalness:.95,roughness:.05,envMapIntensity:1.8});
+ const ex=(pts,wd,mt,sm)=>{pts=chaikin(pts,sm);const sh=new THREE.Shape();pts.forEach((p,i)=>i?sh.lineTo(p[0],p[1]):sh.moveTo(p[0],p[1]));
+  const gm=new THREE.ExtrudeGeometry(sh,{depth:wd,bevelEnabled:true,bevelThickness:.1,bevelSize:.08,bevelSegments:4,curveSegments:1});
+  gm.rotateY(-Math.PI/2);gm.translate(wd/2,0,0);const m=new THREE.Mesh(gm,mt);m.castShadow=true;body.add(m)};
+ ex([[-L,.38],[-L,rb],[a+.1,wb],[b+.2,wb],[L*.62,(wb+fb)/2+.02],[L,fb],[L,.38]],w-.2,paint,3);
+ ex([[a,wb-.04],[c,rh],[d,rh],[b,wb-.04]],w-.35,glass,3);
+ ex([[c+.04,rh-.05],[d-.04,rh-.05],[d-.04,rh+.02],[c+.04,rh+.02]],w-.45,paint,1);
  const em=(c,i)=>new THREE.MeshStandardMaterial({color:c,emissive:c,emissiveIntensity:i});
- const head=em(0xfff3c0,1.6),tail=em(0xff1a1a,.8);
- const bx=(w,h,d,m,x,y,z)=>{const b=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);b.position.set(x,y,z);body.add(b);return b};
- for(const s of[-1,1]){bx(.5,.16,.08,head,s*.62,.8,2.22);bx(.5,.16,.08,tail,s*.62,.85,-2.22)}
- bx(1.3,.12,.06,new THREE.MeshStandardMaterial({color:0x222222}),0,.55,2.22);
- body.scale.y=o.sy||1;
- const tire=new THREE.CylinderGeometry(.4,.4,.32,18).rotateZ(Math.PI/2),rim=new THREE.CylinderGeometry(.27,.27,.34,10).rotateZ(Math.PI/2);
- const tm=new THREE.MeshStandardMaterial({color:0x111111,roughness:.9}),rm=new THREE.MeshStandardMaterial({color:0xcfd3d9,metalness:1,roughness:.25});
- const wh=[];[[-1,1.35,1],[1,1.35,1],[-1,-1.35,0],[1,-1.35,0]].forEach(([sx,z,f])=>{const pv=new THREE.Group();pv.position.set(sx*.98,.4,z);
-  const w=new THREE.Mesh(tire,tm);w.castShadow=true;w.add(new THREE.Mesh(rim,rm));pv.add(w);g.add(pv);wh.push({pv,w,f})});
+ const head=em(0xfff3c0,1.8),tail=em(0xff1a1a,.8);
+ const bx=(W,H,D,m,x,y,z)=>{const q=new THREE.Mesh(new THREE.BoxGeometry(W,H,D),m);q.position.set(x,y,z);q.castShadow=true;body.add(q);return q};
+ bx(w-.5,.2,L*1.7,dkM,0,.4,0);bx(w*.4,.12,.06,dkM,0,fb-.12,L+.1);
+ for(const s of[-1,1]){
+  bx(sp?w*.3:w*.2,sp?.06:.13,.08,head,s*w*.3,fb-.03,L+.1);
+  bx(sp?w*.34:w*.22,.1,.08,tail,s*w*.28,rb-.08,-L-.1);
+  bx(.1,.09,.2,paint,s*(w/2+.03),wb+.08,b-.2);
+  for(const z of[a+.35,(a+b)/2,b-.3])bx(.02,.34,.02,dkM,s*(w/2+.01),wb-.2,z);
+  if(sp)bx(.05,.1,L*.9,dkM,s*(w/2-.02),.44,0)}
+ if(sp){const y=rb+(sp==2?.42:.3);bx(w*(sp==2?.96:.8),.05,sp==2?.5:.38,paint,0,y,-L+.25);
+  for(const s of[-1,1]){bx(.06,y-rb+.05,.1,dkM,s*w*.25,(y+rb)/2,-L+.25);
+   const e=new THREE.Mesh(new THREE.CylinderGeometry(.07,.07,.2,8).rotateX(Math.PI/2),rm);e.position.set(s*w*.22,.45,-L-.08);body.add(e)}
+  bx(w,.05,.35,dkM,0,.4,L+.02);bx(w*.7,.04,.06,tail,0,rb-.06,-L-.1)}
+ if(T.scoop)bx(.5,.1,.5,dkM,0,wb+.04,b+.4);
+ const tw=sp?.38:.3;
+ const tg=new THREE.CylinderGeometry(r,r,tw,24).rotateZ(Math.PI/2),fg=new THREE.CylinderGeometry(r*.66,r*.66,tw+.02,20).rotateZ(Math.PI/2),cg=new THREE.CylinderGeometry(r*.5,r*.5,tw+.03,16).rotateZ(Math.PI/2),sg=new THREE.BoxGeometry(tw+.05,.07,r*.5);
+ const wh=[];[[-1,L*.62,1],[1,L*.62,1],[-1,-L*.6,0],[1,-L*.6,0]].forEach(([sx,z,f])=>{const pv=new THREE.Group();pv.position.set(sx*(w/2-.02),r,z);
+  const wm=new THREE.Mesh(tg,tm);wm.castShadow=true;wm.add(new THREE.Mesh(fg,rm),new THREE.Mesh(cg,dkM));
+  for(let i=0;i<5;i++){const q=new THREE.Group();q.rotation.x=i*1.2566;const m=new THREE.Mesh(sg,rm);m.position.y=r*.4;q.add(m);wm.add(q)}
+  pv.add(wm);g.add(pv);wh.push({pv,w:wm,f})});
  let lb=null;
- if(o.police){const wm=new THREE.MeshStandardMaterial({color:0xffffff});bx(.02,.25,2,wm,1.0,.75,0);bx(.02,.25,2,wm,-1.0,.75,0);
-  lb=[bx(.5,.14,.3,em(0xff0000,.2),-.35,1.68,-.2),bx(.5,.14,.3,em(0x0044ff,.2),.35,1.68,-.2)]}
+ if(o.police){const wm=new THREE.MeshStandardMaterial({color:0xffffff});bx(.02,.25,2,wm,w/2+.01,.72,0);bx(.02,.25,2,wm,-w/2-.01,.72,0);
+  lb=[bx(.5,.14,.3,em(0xff0000,.2),-.35,rh+.1,-.2),bx(.5,.14,.3,em(0x0044ff,.2),.35,rh+.1,-.2)]}
  g.userData={body,wh,paint,tail,lb};return g}
 // Física
 function mkP(g,top,acc){return{g,body:g.userData.body,wh:g.userData.wh,x:0,z:0,h:0,vx:0,vz:0,y:0,vy:0,steer:0,vf:0,vl:0,top,acc}}
@@ -127,10 +148,12 @@ function phys(c,k,dt){
  c.wh.forEach(w=>{if(w.f)w.pv.rotation.y=c.steer*.5;w.w.rotation.x+=vf*dt/.4});
  return imp}
 // Jogador, polícia, trânsito
-const P=mkP(mkCar({color:0xe63946}),55,28);scene.add(P.g);
-const cops=[];for(let i=0;i<3;i++){const c=mkP(mkCar({color:0x15181f,police:1}),50,25);c.on=false;c.stuck=0;c.rev=0;c.g.visible=false;scene.add(c.g);cops.push(c)}
+const CARS=[{n:'Compacto',t:'hatch',c:0xe63946,top:50,acc:24},{n:'Sedan',t:'sedan',c:0x4361ee,top:54,acc:27},{n:'Muscle Car',t:'muscle',c:0xffd60a,top:60,acc:32},{n:'Esportivo',t:'sport',c:0xf72585,top:66,acc:37},{n:'Supercarro',t:'super',c:0x2a9d8f,top:72,acc:42},{n:'Hipercarro',t:'hyper',c:0xf8f9fa,top:78,acc:48}];
+const garage=CARS.map(c=>{const g=mkCar({color:c.c,t:c.t});g.visible=false;scene.add(g);return g});
+const P=mkP(garage[0],50,24);let ci=0;
+const cops=[];for(let i=0;i<8;i++){const c=mkP(mkCar({color:0x15181f,police:1,t:'sedan'}),50,25);c.on=false;c.stuck=0;c.rev=0;c.g.visible=false;scene.add(c.g);cops.push(c)}
 const traffic=[],tcol=[0xf4a261,0x2a9d8f,0xe9c46a,0x6d6875,0xb5179e,0x90be6d,0xeeeeee,0x277da1];
-for(let n=0;n<26;n++){const g=mkCar({color:tcol[n%8],sy:.9+rnd()*.3});scene.add(g);
+for(let n=0;n<26;n++){const g=mkCar({color:tcol[n%8],t:n%3==0?'hatch':n%7==0?'muscle':'sedan'});scene.add(g);
  const k=Math.floor(rnd()*10)-5,dir=Math.floor(rnd()*4);
  traffic.push({g,wh:g.userData.wh,k,dir,pos:(rnd()*2-1)*230,spd:9+((k+5)*3+dir)%6,cur:0,stun:0,x:0,z:0,h:0})}
 function tplace(t){const c=25+50*t.k,d=t.dir,p=t.pos;
@@ -147,9 +170,12 @@ if('ontouchstart'in window)document.querySelectorAll('.b').forEach(b=>b.style.di
 [['bl','l'],['br','r'],['bd','h'],['bb','d'],['bg','u']].forEach(([id,k])=>{const b=document.getElementById(id);
  b.addEventListener('pointerdown',e=>{K[k]=1;e.preventDefault()});['pointerup','pointerleave','pointercancel'].forEach(t=>b.addEventListener(t,()=>K[k]=0))});
 const $=id=>document.getElementById(id);
+function selCar(i){ci=(i+CARS.length)%CARS.length;garage.forEach((g,k)=>g.visible=k==ci);const g=garage[ci],C=CARS[ci];P.g=g;P.body=g.userData.body;P.wh=g.userData.wh;P.top=C.top;P.acc=C.acc;g.position.set(P.x,0,P.z);g.rotation.y=P.h;
+ $('cn').textContent=C.n;$('cs').textContent='Máx. '+Math.round(C.top*3.2)+' km/h · Aceleração '+'▮'.repeat(Math.round(C.acc/7))}
+$('pv').onclick=()=>selCar(ci-1);$('nx').onclick=()=>selCar(ci+1);selCar(0);
 ['#e63946','#ffd60a','#2a9d8f','#4361ee','#f8f9fa','#111111'].forEach(c=>{const d=document.createElement('i');d.style.background=c;d.onclick=()=>P.g.userData.paint.color.set(c);$('dots').appendChild(d)});
 // Jogo
-let state='menu',hp=100,heat=0,stars=0,score=0,combo=0,dtm=0,shake=0,msgT=0,tt=0,inv=0;
+let state='menu',hp=100,heat=0,stars=0,score=0,combo=0,dtm=0,shake=0,msgT=0,tt=0,inv=0,spawnT=0;
 function say(t,s=2){$('msg').textContent=t;$('msg').style.opacity=1;msgT=s}
 function hurt(n){if(inv>0||state!='play')return;hp-=n;inv=.35;shake=Math.min(1,n/14);if(hp<=0){hp=0;state='over';$('fs').textContent='Pontos: '+score;$('over').style.display='flex'}}
 function crime(n,t){if(!stars)say(t||'CRIME! A polícia está a caminho');heat=Math.min(100,heat+n)}
@@ -175,11 +201,13 @@ function step(dt){
   for(const t of traffic){const dx=P.x-t.x,dz=P.z-t.z,d=Math.hypot(dx,dz);
    if(d<2.7&&d>.01&&P.y<1.2){const nx=dx/d,nz=dz/d,vn=P.vx*nx+P.vz*nz;P.x+=nx*(2.7-d);P.z+=nz*(2.7-d);
     if(vn<-2){P.vx-=1.5*vn*nx;P.vz-=1.5*vn*nz;hurt(-vn*.8);crime(25);t.stun=2}}}
-  let near=false;
+  let near=false;const want=[0,1,2,4,6,8][stars];let act=cops.filter(c=>c.on).length;
   for(const c of cops){if(!c.on)continue;
    const dx=P.x-c.x,dz=P.z-c.z,d=Math.hypot(dx,dz);if(d<70)near=true;
-   if(!stars&&d>60){c.on=false;c.g.visible=false;continue}
-   const df=adiff(Math.atan2(dx,dz),c.h),sp=Math.hypot(c.vx,c.vz);
+   if(d<25)heat=Math.min(100,heat+2.5*dt);
+   if(act>want&&d>80){c.on=false;c.g.visible=false;act--;continue}
+   c.top=40+stars*6;c.acc=24+stars*4;
+   const ld=Math.min(1,d/40)*.7,df=adiff(Math.atan2(P.x+P.vx*ld-c.x,P.z+P.vz*ld-c.z),c.h),sp=Math.hypot(c.vx,c.vz);
    if(sp<3)c.stuck+=dt;else c.stuck=0;if(c.stuck>1){c.rev=.9;c.stuck=0}
    const inp=c.rev>0?{d:1,l:1}:{u:d>5||sp<8,l:df>.08,r:df<-.08};c.rev=Math.max(0,c.rev-dt);
    phys(c,inp,dt);
@@ -187,20 +215,22 @@ function step(dt){
     P.x+=nx*(2.8-d)/2;P.z+=nz*(2.8-d)/2;c.x-=nx*(2.8-d)/2;c.z-=nz*(2.8-d)/2;
     if(vr<0){P.vx-=nx*vr*.6;P.vz-=nz*vr*.6;c.vx+=nx*vr*.6;c.vz+=nz*vr*.6;hurt(Math.min(14,-vr*.9))}}
    const f=Math.floor(tt*7)%2;c.g.userData.lb[0].material.emissiveIntensity=f?4:.1;c.g.userData.lb[1].material.emissiveIntensity=f?.1:4}
+  for(let i=0;i<cops.length;i++)for(let j=i+1;j<cops.length;j++){const p=cops[i],q=cops[j];if(!p.on||!q.on)continue;
+   const dx=p.x-q.x,dz=p.z-q.z,d=Math.hypot(dx,dz);if(d<2.8&&d>.01){const o=(2.8-d)/2;p.x+=dx/d*o;p.z+=dz/d*o;q.x-=dx/d*o;q.z-=dz/d*o}}
   if(!near)heat=Math.max(0,heat-7*dt);
-  const ns=heat<20?0:heat<50?1:heat<80?2:3;
-  if(stars>0&&ns==0){say('VOCÊ ESCAPOU! +500');score+=500}
-  stars=ns;for(let i=0;i<stars&&cops.filter(c=>c.on).length<stars;i++){const c=cops.find(c=>!c.on);if(c)spawnCop(c)}
+  const ns=heat<15?0:heat<35?1:heat<55?2:heat<75?3:heat<90?4:5;
+  if(stars>0&&ns==0){say('VOCÊ ESCAPOU! +500');score+=500}else if(ns>stars&&stars>0)say('PROCURADO NÍVEL '+ns+'!');
+  stars=ns;spawnT-=dt;if(act<[0,1,2,4,6,8][ns]&&spawnT<=0){const c=cops.find(c=>!c.on);if(c){spawnCop(c);spawnT=.6}}
   const spd=Math.hypot(P.vx,P.vz);
   if(P.y<.05&&Math.abs(P.vl)>3.5&&spd>8){combo+=Math.abs(P.vl)*dt*10;dtm=.7;
    const fx=Math.sin(P.h),fz=Math.cos(P.h);for(const s of[-1,1])if(Math.random()<.6)puff(P.x-fx*1.3+fz*s,.5,P.z-fz*1.3-fx*s)}
   else if(dtm>0){dtm-=dt;if(dtm<=0){score+=Math.floor(combo);combo=0}}
   if(imp>6)combo=0;
   $('spd').textContent=Math.round(spd*3.2)+' km/h';$('dr').textContent=combo>5?'DRIFT +'+Math.floor(combo):'';
-  $('sc').textContent='Pontos: '+score;$('hp').style.width=hp+'%';$('st').textContent='★'.repeat(stars)+'☆'.repeat(3-stars)}
+  $('sc').textContent='Pontos: '+score;$('hp').style.width=hp+'%';$('st').textContent='★'.repeat(stars)+'☆'.repeat(5-stars)}
  smoke.forEach(s=>{if(s.life>0){s.life-=dt*1.4;s.m.position.y+=dt*1.2;s.m.scale.setScalar(1+(1-s.life)*3);s.m.material.opacity=Math.max(0,s.life*.55);if(s.life<=0)s.m.visible=false}});
  const spd=Math.hypot(P.vx,P.vz);
- if(state=='menu'){const a=tt*.4;cam.position.set(P.x+Math.sin(a)*7,2.2,P.z+Math.cos(a)*7);cam.lookAt(P.x,.9,P.z)}
+ if(state=='menu'){const a=tt*.4;cam.position.set(P.x+Math.sin(a)*7,2.2,P.z+Math.cos(a)*7);cam.lookAt(P.x,-.6,P.z)}
  else{camH+=adiff(P.h,camH)*Math.min(1,4*dt);
   const cx=P.x-Math.sin(camH)*9,cz=P.z-Math.cos(camH)*9,k=Math.min(1,8*dt);
   cam.position.x+=(cx-cam.position.x)*k;cam.position.z+=(cz-cam.position.z)*k;cam.position.y+=(P.y+4.3-cam.position.y)*Math.min(1,6*dt);
