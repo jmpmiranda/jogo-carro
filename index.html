@@ -327,7 +327,7 @@ function phys(c,k,dt){
  let ac=0,ae=0;
  if(c.assist&&!air&&!k.b){
   if(Math.abs(c.steer)>.45){const vc=11+(1-Math.min(1,Math.abs(c.steer)))*20;if(vf>vc)ac=Math.min(1,(vf-vc)/5)}
-  if(vf>8&&Math.abs(c.steer)<.6){const sd=vf*vf/(2*G*.6)+4;if(freeDist(c,0,90)<sd*1.1)ae=1}}
+  if(vf>8&&Math.abs(c.steer)<.6){const sd=vf*vf/(2*G*.6)+4;const fd=freeDist(c,0,90);if(fd<90&&fd<sd*1.1)ae=1}}
  if(ac||ae)c.th*=1-Math.max(ac,ae);
  if(!air){let aL=0;
   if(c.th>.02){aL=Math.max(0,c.acc*c.th*(1-vf/c.top));vf+=aL*dt}
