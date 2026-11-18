@@ -73,7 +73,7 @@ const sun=new THREE.DirectionalLight(0x8fa8ff,.8);sun.castShadow=true;sun.shadow
 const sc=sun.shadow.camera;sc.left=sc.bottom=-70;sc.right=sc.top=70;sc.far=300;scene.add(sun,sun.target);
 // ---------- Texturas ----------
 function cv(w,h,f){const c=document.createElement('canvas');c.width=w;c.height=h;f(c.getContext('2d'),w,h);const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=8;return t}
-const I0=-10,I1=10,J0=-3,J1=3,XR=25+50*I1,ZR=25+50*J1;   // Barra: faixa longa (leste-oeste) entre o mar (sul) e as lagoas (norte)
+const I0=-16,I1=14,J0=-3,J1=3,XR=25+50*I1,ZR=25+50*J1;   // Barra: faixa longa (leste-oeste) entre o mar (sul) e as lagoas (norte)
 const gt=cv(1024,1024,(x,w)=>{
  x.fillStyle='#3a3d42';x.fillRect(0,0,w,w);
  for(let i=0;i<14000;i++){x.fillStyle='rgba('+(rnd()<.5?255:0)+','+(rnd()<.5?255:0)+',255,'+rnd()*.06+')';x.fillRect(rnd()*w,rnd()*w,2,2)}
@@ -101,8 +101,8 @@ const SEA_Z=262,LAG_Z=-213;
 const sandT=cv(128,128,(x,w)=>{x.fillStyle='#d9c79a';x.fillRect(0,0,w,w);for(let i=0;i<2500;i++){x.fillStyle='rgba('+Math.floor(150+rnd()*80)+','+Math.floor(130+rnd()*70)+',90,'+rnd()*.25+')';x.fillRect(rnd()*w,rnd()*w,2,2)}});sandT.repeat.set(300,16);
 const sand=new THREE.Mesh(new THREE.PlaneGeometry(4400,80),new THREE.MeshStandardMaterial({map:sandT,roughness:1}));sand.rotation.x=-Math.PI/2;sand.position.set(0,.02,225);sand.receiveShadow=true;scene.add(sand);
 const pv2=pvT.clone();pv2.needsUpdate=true;pv2.repeat.set(280,3);
-const prom=new THREE.Mesh(new THREE.PlaneGeometry(1100,12),new THREE.MeshStandardMaterial({map:pv2,roughness:.9}));prom.rotation.x=-Math.PI/2;prom.position.set(0,.07,191);prom.receiveShadow=true;scene.add(prom);
-const cic=new THREE.Mesh(new THREE.PlaneGeometry(1100,2.4),new THREE.MeshStandardMaterial({color:0xa8402c,roughness:.8}));cic.rotation.x=-Math.PI/2;cic.position.set(0,.08,193.5);scene.add(cic);
+const prom=new THREE.Mesh(new THREE.PlaneGeometry(2400,12),new THREE.MeshStandardMaterial({map:pv2,roughness:.9}));prom.rotation.x=-Math.PI/2;prom.position.set(0,.07,191);prom.receiveShadow=true;scene.add(prom);
+const cic=new THREE.Mesh(new THREE.PlaneGeometry(2400,2.4),new THREE.MeshStandardMaterial({color:0xa8402c,roughness:.8}));cic.rotation.x=-Math.PI/2;cic.position.set(0,.08,193.5);scene.add(cic);
 const seaT=cv(256,256,(x,w)=>{x.fillStyle='#0b3a5c';x.fillRect(0,0,w,w);for(let i=0;i<90;i++){x.strokeStyle='rgba(180,220,255,'+(.05+rnd()*.12)+')';x.lineWidth=1+rnd()*2;const y=rnd()*w;x.beginPath();x.moveTo(0,y);x.bezierCurveTo(w*.3,y-6,w*.6,y+6,w,y);x.stroke()}});seaT.repeat.set(80,40);
 const sea=new THREE.Mesh(new THREE.PlaneGeometry(6000,2600),new THREE.MeshStandardMaterial({map:seaT,roughness:.18,metalness:.45,envMapIntensity:1.8}));sea.rotation.x=-Math.PI/2;sea.position.set(0,-.08,265+1300);scene.add(sea);
 const foam=new THREE.Mesh(new THREE.PlaneGeometry(4400,5),new THREE.MeshBasicMaterial({color:0xcfe8ff,transparent:true,opacity:.35,depthWrite:false}));foam.rotation.x=-Math.PI/2;foam.position.set(0,.03,264);scene.add(foam);
@@ -137,7 +137,7 @@ const B={},bl=[],sl=[],tr=[],lp=[],pl=[],wl=[],lw=[],med=[],sta=[],mall=[],conds
 const pick=a=>a[Math.floor(rnd()*a.length)];
 [[0,-1,'mall','BARRA SHOPPING'],[-1,-1,'mall','NEW YORK CITY CENTER'],[2,-1,'mall','VILLAGE MALL'],[8,-1,'mall','DOWNTOWN'],[-2,-1,'park','CIDADE DAS ARTES'],[3,-2,'mall','VIA PARQUE'],[5,-2,'mall','CASASHOPPING'],[-7,1,'mall','RIO DESIGN BARRA'],[-8,-1,'mall','METROPOLITANO BARRA'],
  [-1,2,'cond','PENÍNSULA'],[0,2,'cond','PENÍNSULA'],[4,2,'cond','RIO 2'],[7,2,'cond','NOVO LEBLON'],[-6,2,'cond','BARRAMARES'],[-8,-2,'cond','ILHA PURA'],
- [-10,-3,'olimp','PARQUE OLÍMPICO'],[-9,-3,'park','PARQUE OLÍMPICO'],[-10,-2,'park','PARQUE OLÍMPICO'],[-9,-2,'park','PARQUE OLÍMPICO']].forEach(a=>{ZN[a[0]+','+a[1]]={t:a[2],n:a[3]}});
+ [12,-1,'park','JARDIM OCEÂNICO'],[14,3,'park','PEPÊ'],[-10,-3,'olimp','PARQUE OLÍMPICO'],[-9,-3,'park','PARQUE OLÍMPICO'],[-10,-2,'park','PARQUE OLÍMPICO'],[-9,-2,'park','PARQUE OLÍMPICO']].forEach(a=>{ZN[a[0]+','+a[1]]={t:a[2],n:a[3]}});
 function zoneOf(i,j){const z=ZN[i+','+j];if(z)return z;const r=rnd();
  if(j==3)return r<.6?{t:'hotel',n:'HOTEL'}:{t:'cond',n:pick(CN)};
  if(Math.abs(j)==1)return r<.3?{t:'office'}:r<.6?{t:'comm'}:{t:'cond',n:pick(CN)};
@@ -570,6 +570,8 @@ function spawnCop(c){const a=rnd()*6.28;let tx=Math.max(-XR+5,Math.min(XR-5,P.x+
 $('play').onclick=()=>{if(!owned[ci]){const C=CARS[ci];if(money>=C.p){money-=C.p;owned[ci]=1;save()}upM();return}start()};
 $('again').onclick=()=>{$('over').style.display='none';reset();state='play'};
 $('gar').onclick=()=>{$('over').style.display='none';toMenu()};
+function start(){$('menu').style.display='none';$('over').style.display='none';$('hud').style.display='block';reset();state='play'}
+function toMenu(){state='menu';$('over').style.display='none';$('hud').style.display='none';$('menu').style.display='flex';reset();upM()}
 function resetVehicle(){if(state!='play')return;const cl=(v,m)=>Math.max(-m,Math.min(m,25+50*Math.round((v-25)/50))),lx=cl(P.x,XR),lz=cl(P.z,ZR);
  if(Math.abs(P.x-lx)<Math.abs(P.z-lz)){P.x=lx-5;P.z=Math.max(-ZR,Math.min(ZR,P.z));P.h=0}else{P.z=lz+5;P.x=Math.max(-XR,Math.min(XR,P.x));P.h=Math.PI/2}
  Object.assign(P,{vx:0,vz:0,y:0,vy:0,w:0,steer:0});combo=0;camH=P.h}
