@@ -489,6 +489,9 @@ function reset(){trail.length=0;repairCar(P);Object.assign(P,{x:SP.x,z:SP.z,h:SP
 function spawnCop(c){let q=null;for(let i=0;i<12&&!q;i++){const a=rnd()*6.28,d=70+rnd()*50;q=nearRoad(P.x+Math.cos(a)*d,P.z+Math.sin(a)*d,50,r=>r.k<=5);if(q&&Math.hypot(q.x-P.x,q.z-P.z)<45)q=null}
  if(!q)return;Object.assign(c,{on:true,w:0,dr:0,hp:50+stars*12,mhp:50+stars*12,dead:0,deadT:0,x:q.x,z:q.z,vx:0,vz:0,y:0,vy:0,stuck:0,rev:0});repairCar(c);
  c.h=Math.atan2(P.x-q.x,P.z-q.z);c.g.visible=true}
+$('play').onclick=()=>{if(!owned[ci]){const C=CARS[ci];if(money>=C.p){money-=C.p;owned[ci]=1;save()}upM();return}start()};
+$('again').onclick=()=>{$('over').style.display='none';reset();state='play'};
+$('gar').onclick=()=>{$('over').style.display='none';toMenu()};
 function start(){$('menu').style.display='none';$('over').style.display='none';$('hud').style.display='block';reset();state='play'}
 function toMenu(){state='menu';$('over').style.display='none';$('hud').style.display='none';$('menu').style.display='flex';reset();upM()}
 function resetVehicle(){if(state!='play')return;const q=nearRoad(P.x,P.z,400,r=>r.k<=5);if(q){P.x=q.x+(-Math.cos(q.h))*3;P.z=q.z+Math.sin(q.h)*3;P.h=q.h}
